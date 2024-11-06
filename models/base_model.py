@@ -4,6 +4,8 @@ import uuid
 from datetime import datetime, timezone
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, String, DateTime, ForeignKey
+from sqlalchemy import create_engine
+
 Base = declarative_base()
 
 

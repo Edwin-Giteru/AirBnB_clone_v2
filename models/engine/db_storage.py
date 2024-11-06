@@ -1,6 +1,7 @@
 #!/usr/bin/python3
+
 import os
-from models.base_model import Base
+from models.base_model import Base, BaseModel
 from models.city import City
 from models.state import State
 from models.review import Review
@@ -10,26 +11,24 @@ from models.amenity import Amenity
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+db_user = os.getenv('HBNB_MYSQL_USER')
+db_pwd = os.getenv('HBNB_MYSQL_PWD')
+db_host = os.getenv('HBNB_MYSQL_HOST','localhost')
+db_name = os.getenv('HBNB_MYSQL_DB')
+
 class DBstorage:
 
     __engine = None
     __session = None
 
     def __init__(self):
-        db_user = os.getenv('HBNB_MYSQL_USER')
-        db_pwd = os.getenv('HBNB_MYSQL_PWD')
-        db_host = os.getenv('HBNB_MYSQL_HOST','localhost')
-        db_name = os.getenv('HBNB_MYSQL_DB')
-
         self.__engine = create_engine('mysql+mysqldb://{}:{}@{}/{}'.format(db_user, db_pwd, db_host, db_name), pool_pre_ping=True)
+        if os.getenv('HBNB_ENV') == 'test':
+            Base.metadata.drop_all(self.__engine)
+        Base.metadata.create_all(self.__engine)
 
-    if os.getenv('HBNB_ENV') == 'test':
-        Base.metadata.drop_all(self.__engine)
-
-    Base.metadata.create_all(self.__engine)
-
-    SessionLocal = sessionmaker(autocommmit=False, autoflush=False, bind=self.__engine)
-    self.__session = SessionLocal()
+        SessionLocal = sessionmaker(autocommmit=False, autoflush=False, bind=self.__engine)
+        self.__session = SessionLocal()
 
     def all(self,cls=None):
         ''' Query all objects depending on the class name'''
