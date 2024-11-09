@@ -2,7 +2,7 @@
 """This module defines a base class for all models in our hbnb clone"""
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, String, DateTime, ForeignKey
 from sqlalchemy import create_engine
 
@@ -21,19 +21,24 @@ class BaseModel:
         if not kwargs:
             from models import storage
             self.id = str(uuid.uuid4())
-            self.created_at = datetime.now()
-            self.updated_at = datetime.now()
+            self.created_at = datetime.utcnow()
+            self.updated_at = datetime.utcnow()
         else:
-            kwargs['updated_at'] = datetime.strptime(kwargs['updated_at'],
-                                                     '%Y-%m-%dT%H:%M:%S.%f')
-            kwargs['created_at'] = datetime.strptime(kwargs['created_at'],
-                                                     '%Y-%m-%dT%H:%M:%S.%f')
-            del kwargs['__class__']
-            self.__dict__.update(kwargs)
+            if 'created_at' in kwargs:
+                kwargs['created_at'] = datetime.strptime(kwargs['created_at'], '%Y-%m-%dT%H:%M:%S.%f')
+            else:
+                kwargs['created_at'] = datetime.utcnow()
 
-        for key, value in kwargs.items():
-            if not hasattr(self, key):
-                setattr(self, key, value)
+            if 'updated_at' in kwargs:
+                kwargs['updated_at'] = datetime.strptime(kwargs['updated_at'], '%Y-%m-%dT%H:%M:%S.%f')
+            else:
+                kwargs['updated_at'] = datetime.utcnow()
+
+            # Remove the __class__ key if present
+            kwargs.pop('__class__', None)
+            
+            # Update instance attributes with kwargs
+            self.__dict__.update(kwargs)
 
     def __str__(self):
         """Returns a string representation of the instance"""
@@ -57,11 +62,13 @@ class BaseModel:
         dictionary['updated_at'] = self.updated_at.isoformat()
         
         instance_dict = self.__dict__.copy()
+        instance_dict['__class__'] = self.__class__.__name__
         instance_dict.pop('_sa_instance_state', None)
         return instance_dict
 
     def delete(self):
         '''Delete the instance from storage'''
-        models.storage.delete(self)
+        from models.engine.file_storage import FileStorage as storage
+        storage.delete(self)
 
 
